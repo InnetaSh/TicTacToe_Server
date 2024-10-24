@@ -2,8 +2,10 @@
 
 
 
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 
 
 ServerObject listener = new ServerObject();
@@ -11,7 +13,8 @@ await listener.ListenAsync();
 
 class ServerObject
 {
-    TcpListener tcpListener = new TcpListener(IPAddress.Any, 13000);
+    static  IPAddress localAddr = IPAddress.Parse("25.28.51.91");
+    TcpListener tcpListener = new TcpListener(localAddr, 12345);
     List<ClientObject> clients = new List<ClientObject>();
 
 
@@ -85,7 +88,7 @@ class ClientObject
 
         Reader = new StreamReader(stream);
 
-        Writer = new StreamWriter(stream);
+        Writer = new StreamWriter(stream) { AutoFlush = true };
     }
 
     public async Task ProcessAsync()
