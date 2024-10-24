@@ -98,6 +98,15 @@ class ClientObject
 
             string? userName = await Reader.ReadLineAsync();
             string? message = $"{userName} вошел в чат";
+            await server.MessageAsync(message, Id);
+            Console.WriteLine(message);
+
+            var msgChoise = "Выберите X или O";
+            Writer.WriteLine(msgChoise);
+
+
+            string? choise = await Reader.ReadLineAsync();
+            message = $"Игрок {userName} выбрал {choise}";
 
             await server.MessageAsync(message, Id);
             Console.WriteLine(message);
@@ -108,7 +117,7 @@ class ClientObject
                 {
                     message = await Reader.ReadLineAsync();
                     if (message == null) continue;
-                    message = $"{userName}: {message}";
+                    message = $"{userName} ходит: {message}";
                     Console.WriteLine(message);
                     await server.MessageAsync(message, Id);
                 }
