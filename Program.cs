@@ -5,20 +5,23 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection.PortableExecutable;
 using System.Text;
 
 
 ServerObject listener = new ServerObject();
-await listener.ListenAsync();
+ listener.Listen();
+
+
 
 class ServerObject
 {
-    static  IPAddress localAddr = IPAddress.Parse("25.28.51.91");
+    static IPAddress localAddr = IPAddress.Parse("25.28.51.91");
     TcpListener tcpListener = new TcpListener(localAddr, 12345);
     List<ClientObject> clients = new List<ClientObject>();
 
 
-    protected internal async Task ListenAsync()
+    protected internal void Listen()
     {
         try
         {
@@ -27,11 +30,58 @@ class ServerObject
 
             while (true)
             {
-                TcpClient tcpClient = await tcpListener.AcceptTcpClientAsync();
+                TcpClient tcpClient = tcpListener.AcceptTcpClient();
+               
+                    ClientObject clientObject = new ClientObject(tcpClient, this);
+                    clients.Add(clientObject);
 
-                ClientObject clientObject = new ClientObject(tcpClient, this);
-                clients.Add(clientObject);
-                Task.Run(clientObject.ProcessAsync);
+                    clientObject.Process();
+                if (clients.Count < 2)
+                {
+                    var msgAwait = "Ожидаем подключение 2-го игрока";
+                    Console.WriteLine(msgAwait);
+                    continue;
+                }
+
+                var player1 = clients[0].Id;
+                var player2 = clients[1].Id;
+
+
+
+
+                var msg1 = $"{clients[0].Name} - игрок 1, ходит - ";
+                var msgChoise1 = "X";
+                var msg2 = $"{clients[0].Name} - игрок 2, ходит - ";
+                var msgChoise2 = "O";
+
+                Message(msg1, player1);
+                Message(msgChoise1, player1);
+
+                Message(msg2, player2);
+                Message(msgChoise2, player2);
+
+
+
+                var msgHod = "Введите ход:";
+
+                var msgPlayerHod1 = "Игрок2 ходит -";
+                var msgPlayerHod2 = "Игрок1 ходит - ";
+               
+                while (true)
+                {
+                    
+
+                    var msgPlayerHod_Char = clients[0].Reader.ReadLine();
+                    Message(msgPlayerHod2, player2);
+                    Message(msgPlayerHod_Char, player2);
+
+
+                   
+
+                    msgPlayerHod_Char = clients[1].Reader.ReadLine();
+                    Message(msgPlayerHod1, player1);
+                    Message(msgPlayerHod_Char, player1);
+                }
             }
         }
         catch (Exception ex)
@@ -45,18 +95,17 @@ class ServerObject
     }
 
 
-    protected internal async Task MessageAsync(string message, string id)
+    protected internal void Message(string message, string id)
     {
         foreach (var client in clients)
         {
-            if (client.Id != id)
+            if (client.Id == id)
             {
-                await client.Writer.WriteLineAsync(message);
-                await client.Writer.FlushAsync();
+                 client.Writer.WriteLine(message);
+                
             }
         }
     }
-
     protected internal void Disconnect()
     {
         foreach (var client in clients)
@@ -68,13 +117,13 @@ class ServerObject
 }
 
 
-
-
 class ClientObject
 {
     protected internal string Id { get; } = Guid.NewGuid().ToString();
     protected internal StreamWriter Writer { get; }
     protected internal StreamReader Reader { get; }
+
+    public string Name = "";
 
     TcpClient client;
     ServerObject server;
@@ -91,44 +140,17 @@ class ClientObject
         Writer = new StreamWriter(stream) { AutoFlush = true };
     }
 
-    public async Task ProcessAsync()
+    public  void Process()
     {
         try
         {
 
-            string? userName = await Reader.ReadLineAsync();
+            string? userName = Reader.ReadLine();
+            Name = userName;
             string? message = $"{userName} вошел в чат";
-            await server.MessageAsync(message, Id);
+          
             Console.WriteLine(message);
 
-            var msgChoise = "Выберите X или O";
-            Writer.WriteLine(msgChoise);
-
-
-            string? choise = await Reader.ReadLineAsync();
-            message = $"Игрок {userName} выбрал {choise}";
-
-            await server.MessageAsync(message, Id);
-            Console.WriteLine(message);
-
-            while (true)
-            {
-                try
-                {
-                    message = await Reader.ReadLineAsync();
-                    if (message == null) continue;
-                    message = $"{userName} ходит: {message}";
-                    Console.WriteLine(message);
-                    await server.MessageAsync(message, Id);
-                }
-                catch
-                {
-                    message = $"{userName} покинул чат";
-                    Console.WriteLine(message);
-                    await server.MessageAsync(message, Id);
-                    break;
-                }
-            }
         }
         catch (Exception e)
         {
@@ -142,3 +164,44 @@ class ClientObject
         client.Close();
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
